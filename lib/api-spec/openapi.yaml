@@ -1,0 +1,311 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.1.0
+  description: API specification for Climate Change Visualization
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: climate
+    description: Climate data operations
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /climate/temperature:
+    get:
+      operationId: getTemperatureData
+      tags: [climate]
+      summary: Get global temperature data
+      description: Returns air temperature data by year and region from 2015 to 2100
+      parameters:
+        - name: region
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by region (e.g., Africa, Asia, Europe)
+        - name: scenario
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [ssp126, ssp245, ssp370, ssp585]
+          description: Climate scenario (SSP pathway)
+      responses:
+        "200":
+          description: Temperature data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TemperatureDataResponse"
+  /climate/humidity:
+    get:
+      operationId: getHumidityData
+      tags: [climate]
+      summary: Get humidity data by region
+      description: Returns humidity data across different global regions
+      parameters:
+        - name: year
+          in: query
+          required: false
+          schema:
+            type: number
+          description: Filter by year
+        - name: scenario
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [ssp126, ssp245, ssp370, ssp585]
+          description: Climate scenario
+      responses:
+        "200":
+          description: Humidity data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HumidityDataResponse"
+  /climate/globe:
+    get:
+      operationId: getGlobeData
+      tags: [climate]
+      summary: Get globe heatmap data
+      description: Returns gridded temperature data for 3D globe visualization
+      parameters:
+        - name: year
+          in: query
+          required: false
+          schema:
+            type: number
+          description: Year for globe data
+        - name: scenario
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [ssp126, ssp245, ssp370, ssp585]
+      responses:
+        "200":
+          description: Globe temperature grid data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GlobeDataResponse"
+  /climate/regions:
+    get:
+      operationId: getRegions
+      tags: [climate]
+      summary: Get available regions
+      description: Returns list of all available regions with their metadata
+      responses:
+        "200":
+          description: Region list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegionsResponse"
+  /climate/scenarios:
+    get:
+      operationId: getScenarios
+      tags: [climate]
+      summary: Get climate scenarios
+      description: Returns available climate scenarios (SSP pathways)
+      responses:
+        "200":
+          description: Scenario list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScenariosResponse"
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    TemperatureRecord:
+      type: object
+      properties:
+        year:
+          type: number
+        region:
+          type: string
+        temperature:
+          type: number
+          description: Average temperature in Celsius
+        temperatureAnomaly:
+          type: number
+          description: Temperature anomaly vs 1981-2010 baseline in Celsius
+        scenario:
+          type: string
+        model:
+          type: string
+      required:
+        - year
+        - region
+        - temperature
+        - temperatureAnomaly
+        - scenario
+        - model
+    TemperatureDataResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/TemperatureRecord"
+        metadata:
+          $ref: "#/components/schemas/DataMetadata"
+      required:
+        - data
+        - metadata
+    HumidityRecord:
+      type: object
+      properties:
+        year:
+          type: number
+        region:
+          type: string
+        humidity:
+          type: number
+          description: Relative humidity percentage
+        specificHumidity:
+          type: number
+          description: Specific humidity in g/kg
+        scenario:
+          type: string
+      required:
+        - year
+        - region
+        - humidity
+        - specificHumidity
+        - scenario
+    HumidityDataResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/HumidityRecord"
+        metadata:
+          $ref: "#/components/schemas/DataMetadata"
+      required:
+        - data
+        - metadata
+    GlobePoint:
+      type: object
+      properties:
+        lat:
+          type: number
+        lon:
+          type: number
+        temperature:
+          type: number
+        temperatureAnomaly:
+          type: number
+      required:
+        - lat
+        - lon
+        - temperature
+        - temperatureAnomaly
+    GlobeDataResponse:
+      type: object
+      properties:
+        year:
+          type: number
+        scenario:
+          type: string
+        points:
+          type: array
+          items:
+            $ref: "#/components/schemas/GlobePoint"
+      required:
+        - year
+        - scenario
+        - points
+    Region:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        lat:
+          type: number
+        lon:
+          type: number
+        color:
+          type: string
+      required:
+        - id
+        - name
+        - lat
+        - lon
+        - color
+    RegionsResponse:
+      type: object
+      properties:
+        regions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Region"
+      required:
+        - regions
+    Scenario:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        warming:
+          type: string
+      required:
+        - id
+        - name
+        - description
+        - warming
+    ScenariosResponse:
+      type: object
+      properties:
+        scenarios:
+          type: array
+          items:
+            $ref: "#/components/schemas/Scenario"
+      required:
+        - scenarios
+    DataMetadata:
+      type: object
+      properties:
+        source:
+          type: string
+        model:
+          type: string
+        baseline:
+          type: string
+        unit:
+          type: string
+      required:
+        - source
+        - model
+        - baseline
+        - unit

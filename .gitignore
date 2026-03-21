@@ -1,0 +1,4 @@
+﻿node_modules/
+visus_cache_can_be_erased/
+artifacts/api-server/dist/
+artifacts/climate-viz/node_modules/
