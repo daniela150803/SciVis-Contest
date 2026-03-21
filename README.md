@@ -1,65 +1,81 @@
 # NEX GDDP CMIP6 Climate Explorer
 
-Visualize how **air temperature changes from 2015 to 2100** using real NASA NEX GDDP CMIP6 climate data,
-exploring patterns and variations across different regions.
+Visualiza cómo **cambia la temperatura del aire entre 2015 y 2100** usando datos reales del modelo climático NASA NEX GDDP CMIP6, explorando patrones por región y escenario de emisiones.
 
-Data source: OpenVisus / atlantis.sci.utah.edu  
-Variables: `tas` (Daily Near-Surface Air Temperature), `hurs` (Relative Humidity)  
-Model: ACCESS-CM2 | Scenarios: SSP1-2.6, SSP2-4.5, SSP3-7.0, SSP5-8.5
-
----
-
-## Requirements
-
-| Software | Download | Required? |
-|----------|----------|-----------|
-| Node.js 18+ | https://nodejs.org | YES |
-| pnpm | `npm install -g pnpm` | YES |
-| Python 3.9+ | https://python.org | Recommended (for real data) |
+- **Fuente de datos:** OpenVisus / atlantis.sci.utah.edu  
+- **Variables:** `tas` (Temperatura Near-Surface Diaria), `huss` (Humedad Específica)  
+- **Modelo:** ACCESS-CM2 | **Escenarios:** SSP1-2.6, SSP2-4.5, SSP3-7.0, SSP5-8.5
 
 ---
 
-## How to Run
+## Requisitos
 
-1. Extract this folder anywhere on your PC.
-2. Right-click inside the folder → **Open in Terminal** (or PowerShell).
-3. Run:
-   ```
-   powershell -ExecutionPolicy Bypass -File .\start.ps1
-   ```
-4. Open **http://localhost:5173** in your browser.
+| Software | Instalación | ¿Obligatorio? |
+|----------|-------------|---------------|
+| Node.js 18+ | https://nodejs.org | SÍ |
+| pnpm | `npm install -g pnpm` | SÍ |
+| Python 3.9+ | https://python.org | Recomendado (datos reales) |
 
 ---
 
-## Data Modes
+## Cómo ejecutar
 
-### With Python installed (Real CMIP6 data)
-The startup script automatically installs `OpenVisus`, `Flask`, and `NumPy`.
-On first launch it connects to the NEX GDDP CMIP6 dataset and fetches real
-temperature data. **First data load takes 30–60 seconds** while files download.
+1. Clona o extrae el repositorio en cualquier carpeta de tu PC.
+2. Abre una terminal dentro de esa carpeta (clic derecho → **Abrir en Terminal** o PowerShell).
+3. Instala dependencias:
+```
+   pnpm install
+```
+4. Inicia el servidor de datos Python (en una terminal):
+```
+   cd artifacts\python-service
+   python app.py
+```
+5. Inicia el API server Node (en otra terminal):
+```
+   cd artifacts\api-server
+   $env:PYTHON_SERVICE_URL="http://localhost:5001"
+   pnpm dev
+```
+6. Inicia el frontend (en otra terminal):
+```
+   cd artifacts\climate-viz
+   pnpm dev
+```
+7. Abre **http://localhost:5173** en el navegador.
 
-The script reads:
-- `tas_day_ACCESS-CM2_historical_r1i1p1f1_gn` — for years before 2015
-- `tas_day_ACCESS-CM2_ssp585_r1i1p1f1_gn` — for 2015 onwards
-
-This is exactly the same approach as the original Jupyter notebook.
-
-### Without Python (Synthetic data)
-The app still works with realistic synthetic climate projections based on
-published IPCC AR6 warming trajectories. All charts and regions are functional.
+> Necesitas **3 terminales abiertas simultáneamente** para que todo funcione.
 
 ---
 
-## Troubleshooting
+## Modos de datos
 
-**App still blank after startup?**  
-→ Wait 15–20 seconds after opening. The API server needs to build first.
+### Con Python (datos reales CMIP6)
+El servidor Python se conecta al dataset NEX GDDP CMIP6 vía OpenVisus y descarga datos reales de temperatura y humedad. **La primera carga tarda entre 30 y 60 segundos** mientras se descargan los datos del servidor remoto.
 
-**`pnpm` not found?**  
-→ Run `npm install -g pnpm` first, then restart PowerShell.
+Instala las dependencias Python una sola vez:
+```
+pip install flask flask-cors numpy OpenVisus
+```
 
-**Python packages fail to install?**  
-→ The app continues with synthetic data. Real data is optional.
+### Sin Python (datos sintéticos)
+Si el servidor Python no está corriendo, el API server Node responde automáticamente con datos sintéticos basados en las trayectorias de calentamiento del IPCC AR6. Todos los gráficos y regiones funcionan normalmente.
 
-**Port already in use?**  
-→ Change ports by editing `start.ps1` (PORT=3001 for API, PORT=5173 for frontend).
+---
+
+## Solución de problemas
+
+**El dashboard aparece en blanco**  
+→ Verifica que las 3 terminales estén corriendo. Revisa la consola del navegador (F12) por errores de red.
+
+**`pnpm` no se encuentra**  
+→ Ejecuta `npm install -g pnpm` y reinicia la terminal.
+
+**Error de puerto ocupado (EADDRINUSE)**  
+→ Identifica el proceso con `netstat -ano | findstr :3001` y mátalo con `taskkill /PID <número> /F`.
+
+**OpenVisus tarda mucho o no conecta**  
+→ Es normal en la primera carga. El servidor hace caché local en `./visus_cache_can_be_erased`. Si falla, la app continúa con datos sintéticos.
+
+**Los datos no aparecen en el dashboard**  
+→ Confirma que el `vite.config.ts` del frontend tiene el proxy configurado apuntando a `localhost:3001`, y que el `main.tsx` llama a `setBaseUrl("")`.
