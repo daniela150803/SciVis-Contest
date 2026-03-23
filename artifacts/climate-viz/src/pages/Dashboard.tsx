@@ -9,6 +9,7 @@ import { RegionComparison } from "@/components/RegionComparison";
 import { ScenarioSelector } from "@/components/ScenarioSelector";
 import { YearSlider } from "@/components/YearSlider";
 import { KPICards } from "@/components/KPICards";
+import { ScenarioComparison } from "@/components/ScenarioComparison";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Dashboard() {
@@ -20,6 +21,10 @@ export default function Dashboard() {
   const { data: scenariosData } = useGetScenarios();
   const { data: temperatureData, isLoading: tempLoading } = useGetTemperatureData({ scenario: scenario as GetTemperatureDataScenario });
   const { data: humidityData, isLoading: humidLoading } = useGetHumidityData({ scenario: scenario as GetHumidityDataScenario });
+  const { data: ssp126Data, isLoading: ssp126Loading } = useGetTemperatureData({ scenario: "ssp126" as GetTemperatureDataScenario });
+  const { data: ssp245Data, isLoading: ssp245Loading } = useGetTemperatureData({ scenario: "ssp245" as GetTemperatureDataScenario });
+  const { data: ssp370Data, isLoading: ssp370Loading } = useGetTemperatureData({ scenario: "ssp370" as GetTemperatureDataScenario });
+  const { data: ssp585Data, isLoading: ssp585Loading } = useGetTemperatureData({ scenario: "ssp585" as GetTemperatureDataScenario });
   const { data: globeData, isLoading: globeLoading } = useGetGlobeData({
     year: selectedYear,
     scenario: scenario as GetGlobeDataScenario,
@@ -32,6 +37,14 @@ export default function Dashboard() {
   const globePoints = globeData?.points ?? [];
 
   const currentScenario = scenarios.find((s) => s.id === scenario);
+
+  const allScenariosData = {
+    ssp126: ssp126Data?.data ?? [],
+    ssp245: ssp245Data?.data ?? [],
+    ssp370: ssp370Data?.data ?? [],
+    ssp585: ssp585Data?.data ?? [],
+  };
+  const allScenariosLoading = ssp126Loading || ssp245Loading || ssp370Loading || ssp585Loading;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -178,6 +191,12 @@ export default function Dashboard() {
             />
           )}
         </div>
+        <ScenarioComparison
+          selectedRegion={selectedRegion}
+          regions={regions}
+          allScenariosData={allScenariosData}
+          isLoading={allScenariosLoading}
+        />
       </main>
     </div>
   );
