@@ -59,7 +59,6 @@ function avgByRegion<T extends { region: string; year: number }>(
     });
 
   const res = new Map<string, number>();
-
   map.forEach((vals, r) => {
     if (!vals.length) return;
     const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
@@ -68,6 +67,35 @@ function avgByRegion<T extends { region: string; year: number }>(
 
   return res;
 }
+
+/* 🔥 TOOLTIP CORRECTO (COMPARA AMBOS) */
+const CustomTooltip = ({ active, payload }: any) => {
+  if (!active || !payload?.length) return null;
+
+  const data = payload[0]?.payload;
+
+  return (
+    <div className="bg-card/95 backdrop-blur border rounded px-3 py-2 text-xs">
+      <p className="font-semibold mb-2">{data.region}</p>
+
+      <p>
+        {data.leftLabel}
+        <br />
+        Humedad: {data.humidityLeft.toFixed(2)} g/kg
+        <br />
+        Temp: {data.tempLeft.toFixed(2)} °C
+      </p>
+
+      <p className="mt-2">
+        {data.rightLabel}
+        <br />
+        Humedad: {data.humidityRight.toFixed(2)} g/kg
+        <br />
+        Temp: {data.tempRight.toFixed(2)} °C
+      </p>
+    </div>
+  );
+};
 
 export function HumidityBarChart({
   humidityData,
@@ -89,18 +117,8 @@ export function HumidityBarChart({
     const hL = avgByRegion(humidityData, leftStart, leftEnd, (d) => d.humidity);
     const hR = avgByRegion(humidityData, rightStart, rightEnd, (d) => d.humidity);
 
-    const tL = avgByRegion(
-      temperatureData,
-      leftStart,
-      leftEnd,
-      (d) => d.temperature
-    );
-    const tR = avgByRegion(
-      temperatureData,
-      rightStart,
-      rightEnd,
-      (d) => d.temperature
-    );
+    const tL = avgByRegion(temperatureData, leftStart, leftEnd, (d) => d.temperature);
+    const tR = avgByRegion(temperatureData, rightStart, rightEnd, (d) => d.temperature);
 
     return Array.from(new Set(humidityData.map((d) => d.region))).map((r) => ({
       region: r,
@@ -124,12 +142,10 @@ export function HumidityBarChart({
 
   return (
     <div className="p-4">
-      {/* RANGO */}
       <div className="text-xs text-muted-foreground mb-2">
         {chartData[0]?.leftLabel} vs {chartData[0]?.rightLabel}
       </div>
 
-      {/* TEMPERATURAS ARRIBA */}
       <div className="flex justify-between px-8 mb-1">
         {chartData.map((d) => (
           <div
@@ -142,12 +158,10 @@ export function HumidityBarChart({
         ))}
       </div>
 
-      {/* GRÁFICA */}
       <ResponsiveContainer width="100%" height={330}>
         <BarChart data={chartData}>
           <XAxis dataKey="region" angle={-25} textAnchor="end" height={60} />
 
-          {/* ✅ YAxis FIX FINAL (SIN ERROR TS) */}
           <YAxis
             domain={[0, maxHumidity]}
             tickFormatter={(value: number) =>
@@ -157,7 +171,9 @@ export function HumidityBarChart({
             }
           />
 
-          <Tooltip />
+          {/* 🔥 AQUÍ SE USA EL TOOLTIP CORRECTO */}
+          <Tooltip content={<CustomTooltip />} />
+
           <Legend />
 
           <Bar dataKey="humidityLeft" name="Rango anterior">
