@@ -1,25 +1,53 @@
 import { useState } from "react";
-import { useGetTemperatureData, useGetHumidityData, useGetGlobeData, useGetRegions, useGetScenarios } from "@workspace/api-client-react";
-import type { GetTemperatureDataScenario, GetHumidityDataScenario, GetGlobeDataScenario } from "@workspace/api-client-react";
+import {
+  useGetTemperatureData,
+  useGetHumidityData,
+  useGetGlobeData,
+  useGetRegions,
+  useGetScenarios,
+} from "@workspace/api-client-react";
+import type {
+  GetTemperatureDataScenario,
+  GetHumidityDataScenario,
+  GetGlobeDataScenario,
+} from "@workspace/api-client-react";
+
 import { Globe3D } from "@/components/Globe3D";
 import { TemperatureTimeline } from "@/components/TemperatureTimeline";
 import { HumidityRadar } from "@/components/HumidityRadar";
-import type { HumidityRecord } from "@/components/HumidityRadar";
+import { HumidityBarChart } from "@/components/HumidityBarChart";
 import { RegionComparison } from "@/components/RegionComparison";
 import { ScenarioSelector } from "@/components/ScenarioSelector";
 import { YearSlider } from "@/components/YearSlider";
 import { KPICards } from "@/components/KPICards";
 import { Skeleton } from "@/components/ui/skeleton";
 
+type HumidityRecord = {
+  year: number;
+  region: string;
+  regionId: string;
+  humidity: number;
+  specificHumidity: number;
+  scenario: string;
+};
+
 export default function Dashboard() {
   const [scenario, setScenario] = useState("ssp245");
   const [selectedYear, setSelectedYear] = useState(2015);
+  const [comparisonYear, setComparisonYear] = useState(2100);
   const [selectedRegion, setSelectedRegion] = useState<string | undefined>(undefined);
 
   const { data: regionsData } = useGetRegions();
   const { data: scenariosData } = useGetScenarios();
-  const { data: temperatureData, isLoading: tempLoading } = useGetTemperatureData({ scenario: scenario as GetTemperatureDataScenario });
-  const { data: humidityData, isLoading: humidLoading } = useGetHumidityData({ scenario: scenario as GetHumidityDataScenario });
+
+  const { data: temperatureData, isLoading: tempLoading } = useGetTemperatureData({
+    scenario: scenario as GetTemperatureDataScenario,
+  });
+
+  const { data: humidityData, isLoading: humidLoading } = useGetHumidityData({
+    scenario: scenario as GetHumidityDataScenario,
+  });
+
   const { data: globeData, isLoading: globeLoading } = useGetGlobeData({
     year: selectedYear,
     scenario: scenario as GetGlobeDataScenario,
@@ -28,7 +56,7 @@ export default function Dashboard() {
   const regions = regionsData?.regions ?? [];
   const scenarios = scenariosData?.scenarios ?? [];
   const tempRecords = temperatureData?.data ?? [];
-  const humidityRecords = humidityData?.data ?? [];
+  const humidityRecords = (humidityData?.data ?? []) as HumidityRecord[];
   const globePoints = globeData?.points ?? [];
 
   const currentScenario = scenarios.find((s) => s.id === scenario);
@@ -50,6 +78,7 @@ export default function Dashboard() {
               </p>
             </div>
           </div>
+
           <div className="flex items-center gap-4 flex-wrap">
             <ScenarioSelector
               scenarios={scenarios}
@@ -79,7 +108,9 @@ export default function Dashboard() {
           <div className="xl:col-span-3 bg-card border border-border/60 rounded-xl overflow-hidden">
             <div className="px-5 py-4 border-b border-border/40 flex items-center justify-between">
               <div>
-                <h2 className="text-sm font-semibold text-foreground">Mapa Global de Temperatura en 3D</h2>
+                <h2 className="text-sm font-semibold text-foreground">
+                  Mapa Global de Temperatura en 3D
+                </h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   Anomalía de temperatura (°C vs línea base 1981–2010) · {selectedYear}
                 </p>
@@ -88,7 +119,9 @@ export default function Dashboard() {
                 {currentScenario?.warming ?? ""}
               </span>
             </div>
+
             <YearSlider value={selectedYear} onChange={setSelectedYear} />
+
             {globeLoading ? (
               <div className="h-[480px] flex items-center justify-center">
                 <Skeleton className="w-[420px] h-[420px] rounded-full" />
@@ -101,34 +134,63 @@ export default function Dashboard() {
           <div className="xl:col-span-2 space-y-6">
             <div className="bg-card border border-border/60 rounded-xl overflow-hidden">
               <div className="px-5 py-4 border-b border-border/40">
-                <h2 className="text-sm font-semibold text-foreground">Humedad por Región</h2>
+                <h2 className="text-sm font-semibold text-foreground">
+                  Humedad por Región
+                </h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Comparación de humedad relativa (%)
+                  Comparación de humedad específica (g/kg) y color por temperatura
                 </p>
               </div>
+
               {humidLoading ? (
                 <div className="h-64 p-4 space-y-2">
-                  {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
+                  {[...Array(5)].map((_, i) => (
+                    <Skeleton key={i} className="h-8 w-full" />
+                  ))}
                 </div>
               ) : (
-                <HumidityRadar
-                  data={humidityRecords as HumidityRecord[]}
-                  selectedYear={selectedYear}
-                  regions={regions}
-                />
+                <div className="space-y-4">
+                  <div className="px-4 pt-4">
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Año base:{" "}
+                      <span className="text-primary font-mono font-medium">
+                        {comparisonYear}
+                      </span>
+                    </p>
+                    <YearSlider value={comparisonYear} onChange={setComparisonYear} />
+                  </div>
+
+                  <HumidityBarChart
+                    humidityData={humidityRecords}
+                    temperatureData={tempRecords}
+                    comparisonYear={comparisonYear}
+                    selectedYear={selectedYear}
+                  />
+
+                  <HumidityRadar
+                    data={humidityRecords}
+                    selectedYear={selectedYear}
+                    regions={regions}
+                  />
+                </div>
               )}
             </div>
 
             <div className="bg-card border border-border/60 rounded-xl overflow-hidden">
               <div className="px-5 py-4 border-b border-border/40">
-                <h2 className="text-sm font-semibold text-foreground">Resumen Regional</h2>
+                <h2 className="text-sm font-semibold text-foreground">
+                  Resumen Regional
+                </h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   Anomalía de temperatura por región · {selectedYear}
                 </p>
               </div>
+
               {tempLoading ? (
                 <div className="h-52 p-4 space-y-2">
-                  {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
+                  {[...Array(4)].map((_, i) => (
+                    <Skeleton key={i} className="h-8 w-full" />
+                  ))}
                 </div>
               ) : (
                 <RegionComparison
@@ -155,6 +217,7 @@ export default function Dashboard() {
                   : "Todas las regiones · haz clic en una región arriba para filtrar"}
               </p>
             </div>
+
             {selectedRegion && (
               <button
                 onClick={() => setSelectedRegion(undefined)}
@@ -164,6 +227,7 @@ export default function Dashboard() {
               </button>
             )}
           </div>
+
           {tempLoading ? (
             <div className="h-64 p-6">
               <Skeleton className="w-full h-full" />
