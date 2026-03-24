@@ -31,17 +31,22 @@ export interface TemperatureRecord {
 interface Props {
   humidityData: HumidityRecord[];
   temperatureData: TemperatureRecord[];
-  comparisonYear: number;
-  selectedYear: number;
+  boundaryYear: number;
 }
 
 type ChartItem = {
   region: string;
-  humidityComparison: number;
-  humiditySelected: number;
-  tempComparison: number;
-  tempSelected: number;
+  humidityLeft: number;
+  humidityRight: number;
+  tempLeft: number;
+  tempRight: number;
+  leftLabel: string;
+  rightLabel: string;
 };
+
+const WINDOW_SIZE = 10;
+const DATA_MIN_YEAR = 2015;
+const DATA_MAX_YEAR = 2100;
 
 function temperatureToColor(temp: number, minTemp: number, maxTemp: number) {
   if (maxTemp === minTemp) return "hsl(220 90% 55%)";
@@ -50,6 +55,31 @@ function temperatureToColor(temp: number, minTemp: number, maxTemp: number) {
   const clamped = Math.max(0, Math.min(1, t));
   const hue = 220 - clamped * 220;
   return `hsl(${hue} 90% 55%)`;
+}
+
+function averageByRegion<T extends { region: string; year: number }>(
+  records: T[],
+  startYear: number,
+  endYear: number,
+  valueGetter: (item: T) => number
+) {
+  const filtered = records.filter((d) => d.year >= startYear && d.year < endYear);
+  const groups = new Map<string, number[]>();
+
+  for (const item of filtered) {
+    const arr = groups.get(item.region) ?? [];
+    arr.push(valueGetter(item));
+    groups.set(item.region, arr);
+  }
+
+  const result = new Map<string, number>();
+  for (const [region, values] of groups.entries()) {
+    if (!values.length) continue;
+    const avg = values.reduce((a, b) => a + b, 0) / values.length;
+    result.set(region, avg);
+  }
+
+  return result;
 }
 
 const CustomTooltip = ({ active, payload }: any) => {
@@ -63,33 +93,33 @@ const CustomTooltip = ({ active, payload }: any) => {
 
       <div className="space-y-2">
         <div className="border-t border-border/40 pt-2 first:border-t-0 first:pt-0">
-          <p className="text-foreground font-medium">{item?.comparisonYearLabel}</p>
+          <p className="text-foreground font-medium">{item?.leftLabel}</p>
           <p className="text-muted-foreground">
             Humedad:{" "}
             <span className="text-foreground font-mono">
-              {Number(item?.humidityComparison ?? 0).toFixed(2)} g/kg
+              {Number(item?.humidityLeft ?? 0).toFixed(2)} g/kg
             </span>
           </p>
           <p className="text-muted-foreground">
             Temperatura:{" "}
             <span className="text-foreground font-mono">
-              {Number(item?.tempComparison ?? 0).toFixed(2)} °C
+              {Number(item?.tempLeft ?? 0).toFixed(2)} °C
             </span>
           </p>
         </div>
 
         <div className="border-t border-border/40 pt-2">
-          <p className="text-foreground font-medium">{item?.selectedYearLabel}</p>
+          <p className="text-foreground font-medium">{item?.rightLabel}</p>
           <p className="text-muted-foreground">
             Humedad:{" "}
             <span className="text-foreground font-mono">
-              {Number(item?.humiditySelected ?? 0).toFixed(2)} g/kg
+              {Number(item?.humidityRight ?? 0).toFixed(2)} g/kg
             </span>
           </p>
           <p className="text-muted-foreground">
             Temperatura:{" "}
             <span className="text-foreground font-mono">
-              {Number(item?.tempSelected ?? 0).toFixed(2)} °C
+              {Number(item?.tempRight ?? 0).toFixed(2)} °C
             </span>
           </p>
         </div>
@@ -101,56 +131,76 @@ const CustomTooltip = ({ active, payload }: any) => {
 export function HumidityBarChart({
   humidityData,
   temperatureData,
-  comparisonYear,
-  selectedYear,
+  boundaryYear,
 }: Props) {
   const chartData = useMemo(() => {
-    const humidityComparison = humidityData.filter((d) => d.year === comparisonYear);
-    const humiditySelected = humidityData.filter((d) => d.year === selectedYear);
-
-    const temperatureComparison = temperatureData.filter((d) => d.year === comparisonYear);
-    const temperatureSelected = temperatureData.filter((d) => d.year === selectedYear);
-
-    const humidityComparisonMap = new Map(
-      humidityComparison.map((d) => [d.region, d.humidity])
-    );
-    const humiditySelectedMap = new Map(
-      humiditySelected.map((d) => [d.region, d.humidity])
+    const normalizedBoundary = Math.max(
+      DATA_MIN_YEAR + WINDOW_SIZE,
+      Math.min(boundaryYear, DATA_MAX_YEAR)
     );
 
-    const temperatureComparisonMap = new Map(
-      temperatureComparison.map((d) => [d.region, d.temperature])
+    const rightEnd = normalizedBoundary;
+    const rightStart = Math.max(DATA_MIN_YEAR, rightEnd - WINDOW_SIZE);
+
+    const leftEnd = rightStart;
+    const leftStart = Math.max(DATA_MIN_YEAR, leftEnd - WINDOW_SIZE);
+
+    const humidityLeft = averageByRegion(
+      humidityData,
+      leftStart,
+      leftEnd,
+      (d) => d.humidity
     );
-    const temperatureSelectedMap = new Map(
-      temperatureSelected.map((d) => [d.region, d.temperature])
+    const humidityRight = averageByRegion(
+      humidityData,
+      rightStart,
+      rightEnd,
+      (d) => d.humidity
+    );
+
+    const tempLeft = averageByRegion(
+      temperatureData,
+      leftStart,
+      leftEnd,
+      (d) => d.temperature
+    );
+    const tempRight = averageByRegion(
+      temperatureData,
+      rightStart,
+      rightEnd,
+      (d) => d.temperature
     );
 
     const regions = Array.from(
       new Set([
-        ...humidityComparison.map((d) => d.region),
-        ...humiditySelected.map((d) => d.region),
+        ...humidityData
+          .filter((d) => d.year >= leftStart && d.year <= rightEnd)
+          .map((d) => d.region),
+        ...temperatureData
+          .filter((d) => d.year >= leftStart && d.year <= rightEnd)
+          .map((d) => d.region),
       ])
     );
 
     return regions
       .map((region) => ({
         region,
-        humidityComparison: Number((humidityComparisonMap.get(region) ?? 0).toFixed(2)),
-        humiditySelected: Number((humiditySelectedMap.get(region) ?? 0).toFixed(2)),
-        tempComparison: Number((temperatureComparisonMap.get(region) ?? 0).toFixed(2)),
-        tempSelected: Number((temperatureSelectedMap.get(region) ?? 0).toFixed(2)),
-        comparisonYearLabel: `${comparisonYear}`,
-        selectedYearLabel: `${selectedYear}`,
+        humidityLeft: Number((humidityLeft.get(region) ?? 0).toFixed(2)),
+        humidityRight: Number((humidityRight.get(region) ?? 0).toFixed(2)),
+        tempLeft: Number((tempLeft.get(region) ?? 0).toFixed(2)),
+        tempRight: Number((tempRight.get(region) ?? 0).toFixed(2)),
+        leftLabel: `${leftStart}-${leftEnd}`,
+        rightLabel: `${rightStart}-${rightEnd}`,
       }))
-      .sort((a, b) => b.humiditySelected - a.humiditySelected);
-  }, [humidityData, temperatureData, comparisonYear, selectedYear]);
+      .sort((a, b) => b.humidityRight - a.humidityRight);
+  }, [humidityData, temperatureData, boundaryYear]);
 
-  const tempValues = chartData.flatMap((d) => [d.tempComparison, d.tempSelected]);
+  const tempValues = chartData.flatMap((d) => [d.tempLeft, d.tempRight]);
   const minTemp = tempValues.length ? Math.min(...tempValues) : 0;
   const maxTemp = tempValues.length ? Math.max(...tempValues) : 1;
 
   const maxHumidity = Math.max(
-    ...chartData.flatMap((d) => [d.humidityComparison, d.humiditySelected]),
+    ...chartData.flatMap((d) => [d.humidityLeft, d.humidityRight]),
     1
   );
 
@@ -158,9 +208,16 @@ export function HumidityBarChart({
     <div className="p-4">
       <div className="flex items-center justify-between gap-4 mb-2 flex-wrap">
         <span className="text-xs text-muted-foreground">
-          Comparación:{" "}
-          <span className="text-primary font-mono font-medium">{comparisonYear}</span> vs{" "}
-          <span className="text-primary font-mono font-medium">{selectedYear}</span>
+          Comparación por rango:{" "}
+          <span className="text-primary font-mono font-medium">
+            {Math.max(DATA_MIN_YEAR, Math.min(boundaryYear, DATA_MAX_YEAR) - WINDOW_SIZE)}-
+            {Math.max(DATA_MIN_YEAR, Math.min(boundaryYear, DATA_MAX_YEAR) - WINDOW_SIZE + WINDOW_SIZE)}
+          </span>{" "}
+          vs{" "}
+          <span className="text-primary font-mono font-medium">
+            {Math.max(DATA_MIN_YEAR, Math.min(boundaryYear, DATA_MAX_YEAR) - WINDOW_SIZE + 0)}-
+            {Math.max(DATA_MIN_YEAR, Math.min(boundaryYear, DATA_MAX_YEAR))}
+          </span>
         </span>
 
         <div className="flex items-center gap-2 text-[11px] text-muted-foreground flex-wrap">
@@ -171,7 +228,7 @@ export function HumidityBarChart({
         </div>
       </div>
 
-      <ResponsiveContainer width="100%" height={320}>
+      <ResponsiveContainer width="100%" height={330}>
         <BarChart
           data={chartData}
           margin={{ top: 10, right: 20, left: 0, bottom: 45 }}
@@ -192,28 +249,20 @@ export function HumidityBarChart({
           <Tooltip content={<CustomTooltip />} />
           <Legend />
 
-          <Bar
-            dataKey="humidityComparison"
-            name={`Humedad ${comparisonYear}`}
-            radius={[6, 6, 0, 0]}
-          >
+          <Bar dataKey="humidityLeft" name="Rango anterior" radius={[6, 6, 0, 0]}>
             {chartData.map((entry) => (
               <Cell
-                key={`cmp-${entry.region}`}
-                fill={temperatureToColor(entry.tempComparison, minTemp, maxTemp)}
+                key={`left-${entry.region}`}
+                fill={temperatureToColor(entry.tempLeft, minTemp, maxTemp)}
               />
             ))}
           </Bar>
 
-          <Bar
-            dataKey="humiditySelected"
-            name={`Humedad ${selectedYear}`}
-            radius={[6, 6, 0, 0]}
-          >
+          <Bar dataKey="humidityRight" name="Rango actual" radius={[6, 6, 0, 0]}>
             {chartData.map((entry) => (
               <Cell
-                key={`sel-${entry.region}`}
-                fill={temperatureToColor(entry.tempSelected, minTemp, maxTemp)}
+                key={`right-${entry.region}`}
+                fill={temperatureToColor(entry.tempRight, minTemp, maxTemp)}
               />
             ))}
           </Bar>

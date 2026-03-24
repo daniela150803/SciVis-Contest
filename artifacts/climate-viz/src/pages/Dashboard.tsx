@@ -6,6 +6,7 @@ import {
   useGetRegions,
   useGetScenarios,
 } from "@workspace/api-client-react";
+
 import type {
   GetTemperatureDataScenario,
   GetHumidityDataScenario,
@@ -34,24 +35,27 @@ type HumidityRecord = {
 export default function Dashboard() {
   const [scenario, setScenario] = useState("ssp245");
   const [selectedYear, setSelectedYear] = useState(2015);
-  const [comparisonYear, setComparisonYear] = useState(2100);
-  const [selectedRegion, setSelectedRegion] = useState<string | undefined>(undefined);
+  const [boundaryYear, setBoundaryYear] = useState(2025);
+  const [selectedRegion, setSelectedRegion] = useState<string | undefined>();
 
   const { data: regionsData } = useGetRegions();
   const { data: scenariosData } = useGetScenarios();
 
-  const { data: temperatureData, isLoading: tempLoading } = useGetTemperatureData({
-    scenario: scenario as GetTemperatureDataScenario,
-  });
+  const { data: temperatureData, isLoading: tempLoading } =
+    useGetTemperatureData({
+      scenario: scenario as GetTemperatureDataScenario,
+    });
 
-  const { data: humidityData, isLoading: humidLoading } = useGetHumidityData({
-    scenario: scenario as GetHumidityDataScenario,
-  });
+  const { data: humidityData, isLoading: humidLoading } =
+    useGetHumidityData({
+      scenario: scenario as GetHumidityDataScenario,
+    });
 
-  const { data: globeData, isLoading: globeLoading } = useGetGlobeData({
-    year: selectedYear,
-    scenario: scenario as GetGlobeDataScenario,
-  });
+  const { data: globeData, isLoading: globeLoading } =
+    useGetGlobeData({
+      year: selectedYear,
+      scenario: scenario as GetGlobeDataScenario,
+    });
 
   const regions = regionsData?.regions ?? [];
   const scenarios = scenariosData?.scenarios ?? [];
@@ -63,39 +67,29 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      {/* HEADER */}
       <header className="border-b border-border/50 bg-card/50 backdrop-blur sticky top-0 z-50">
-        <div className="max-w-[1600px] mx-auto px-6 py-4 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
-              <span className="text-primary text-sm">🌍</span>
-            </div>
-            <div>
-              <h1 className="text-base font-semibold text-foreground leading-none">
-                Panel de Control NEX GDDP CMIP6
-              </h1>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Temperatura y humedad · 2015–2100
-              </p>
-            </div>
+        <div className="max-w-[1600px] mx-auto px-6 py-4 flex items-center justify-between">
+          <div>
+            <h1 className="text-base font-semibold">
+              Dashboard Climático
+            </h1>
+            <p className="text-xs text-muted-foreground">
+              Temperatura y humedad · 2015–2100
+            </p>
           </div>
 
-          <div className="flex items-center gap-4 flex-wrap">
-            <ScenarioSelector
-              scenarios={scenarios}
-              value={scenario}
-              onChange={setScenario}
-            />
-            <button
-              onClick={() => window.print()}
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1.5 rounded border border-border/50 hover:border-border"
-            >
-              Exportar a PDF
-            </button>
-          </div>
+          <ScenarioSelector
+            scenarios={scenarios}
+            value={scenario}
+            onChange={setScenario}
+          />
         </div>
       </header>
 
+      {/* CONTENT */}
       <main className="max-w-[1600px] mx-auto px-6 py-6 space-y-6">
+        {/* KPI */}
         <KPICards
           tempRecords={tempRecords}
           humidityRecords={humidityRecords}
@@ -104,67 +98,73 @@ export default function Dashboard() {
           isLoading={tempLoading || humidLoading}
         />
 
+        {/* GRID */}
         <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
-          <div className="xl:col-span-3 bg-card border border-border/60 rounded-xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-border/40 flex items-center justify-between">
-              <div>
-                <h2 className="text-sm font-semibold text-foreground">
-                  Mapa Global de Temperatura en 3D
-                </h2>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Anomalía de temperatura (°C vs línea base 1981–2010) · {selectedYear}
-                </p>
-              </div>
-              <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-md">
-                {currentScenario?.warming ?? ""}
-              </span>
+          {/* GLOBO */}
+          <div className="xl:col-span-3 bg-card border rounded-xl">
+            <div className="p-4 border-b">
+              <h2 className="text-sm font-semibold">
+                Globo climático
+              </h2>
             </div>
 
-            <YearSlider value={selectedYear} onChange={setSelectedYear} />
+            <YearSlider
+              value={selectedYear}
+              onChange={setSelectedYear}
+            />
 
             {globeLoading ? (
-              <div className="h-[480px] flex items-center justify-center">
-                <Skeleton className="w-[420px] h-[420px] rounded-full" />
+              <div className="h-[400px] flex items-center justify-center">
+                <Skeleton className="w-[300px] h-[300px] rounded-full" />
               </div>
             ) : (
-              <Globe3D points={globePoints} year={selectedYear} scenario={scenario} />
+              <Globe3D
+                points={globePoints}
+                year={selectedYear}
+                scenario={scenario}
+              />
             )}
           </div>
 
+          {/* HUMEDAD */}
           <div className="xl:col-span-2 space-y-6">
-            <div className="bg-card border border-border/60 rounded-xl overflow-hidden">
-              <div className="px-5 py-4 border-b border-border/40">
-                <h2 className="text-sm font-semibold text-foreground">
-                  Humedad por Región
+            <div className="bg-card border rounded-xl">
+              <div className="p-4 border-b">
+                <h2 className="text-sm font-semibold">
+                  Comparación de humedad por rangos
                 </h2>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Comparación de humedad específica (g/kg) y color por temperatura
-                </p>
               </div>
 
               {humidLoading ? (
-                <div className="h-64 p-4 space-y-2">
-                  {[...Array(5)].map((_, i) => (
-                    <Skeleton key={i} className="h-8 w-full" />
-                  ))}
-                </div>
+                <Skeleton className="h-[300px] w-full" />
               ) : (
-                <div className="space-y-4">
+                <>
+                  {/* SLIDER SOLO PARA BARRAS */}
                   <div className="px-4 pt-4">
                     <p className="text-xs text-muted-foreground mb-2">
-                      Año base:{" "}
-                      <span className="text-primary font-mono font-medium">
-                        {comparisonYear}
+                      Punto de corte:{" "}
+                      <span className="text-primary font-mono">
+                        {boundaryYear}
                       </span>
                     </p>
-                    <YearSlider value={comparisonYear} onChange={setComparisonYear} />
+
+                    <input
+                      type="range"
+                      min={2025}
+                      max={2100}
+                      step={5}
+                      value={boundaryYear}
+                      onChange={(e) =>
+                        setBoundaryYear(Number(e.target.value))
+                      }
+                      className="w-full"
+                    />
                   </div>
 
                   <HumidityBarChart
                     humidityData={humidityRecords}
                     temperatureData={tempRecords}
-                    comparisonYear={comparisonYear}
-                    selectedYear={selectedYear}
+                    boundaryYear={boundaryYear}
                   />
 
                   <HumidityRadar
@@ -172,26 +172,20 @@ export default function Dashboard() {
                     selectedYear={selectedYear}
                     regions={regions}
                   />
-                </div>
+                </>
               )}
             </div>
 
-            <div className="bg-card border border-border/60 rounded-xl overflow-hidden">
-              <div className="px-5 py-4 border-b border-border/40">
-                <h2 className="text-sm font-semibold text-foreground">
-                  Resumen Regional
+            {/* REGIONES */}
+            <div className="bg-card border rounded-xl">
+              <div className="p-4 border-b">
+                <h2 className="text-sm font-semibold">
+                  Comparación de regiones
                 </h2>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Anomalía de temperatura por región · {selectedYear}
-                </p>
               </div>
 
               {tempLoading ? (
-                <div className="h-52 p-4 space-y-2">
-                  {[...Array(4)].map((_, i) => (
-                    <Skeleton key={i} className="h-8 w-full" />
-                  ))}
-                </div>
+                <Skeleton className="h-[200px] w-full" />
               ) : (
                 <RegionComparison
                   data={tempRecords}
@@ -205,33 +199,16 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="bg-card border border-border/60 rounded-xl overflow-hidden">
-          <div className="px-5 py-4 border-b border-border/40 flex items-center justify-between">
-            <div>
-              <h2 className="text-sm font-semibold text-foreground">
-                Línea de Tiempo de Temperatura 2015–2100
-              </h2>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {selectedRegion
-                  ? `Mostrando: ${regions.find((r) => r.id === selectedRegion)?.name ?? selectedRegion}`
-                  : "Todas las regiones · haz clic en una región arriba para filtrar"}
-              </p>
-            </div>
-
-            {selectedRegion && (
-              <button
-                onClick={() => setSelectedRegion(undefined)}
-                className="text-xs text-muted-foreground hover:text-foreground border border-border/50 hover:border-border px-2 py-1 rounded transition-colors"
-              >
-                Limpiar filtro
-              </button>
-            )}
+        {/* TIMELINE */}
+        <div className="bg-card border rounded-xl">
+          <div className="p-4 border-b">
+            <h2 className="text-sm font-semibold">
+              Línea de tiempo de temperatura
+            </h2>
           </div>
 
           {tempLoading ? (
-            <div className="h-64 p-6">
-              <Skeleton className="w-full h-full" />
-            </div>
+            <Skeleton className="h-[300px] w-full" />
           ) : (
             <TemperatureTimeline
               data={tempRecords}
