@@ -209,15 +209,30 @@ export function HumidityBarChart({
       <div className="flex items-center justify-between gap-4 mb-2 flex-wrap">
         <span className="text-xs text-muted-foreground">
           Comparación por rango:{" "}
-          <span className="text-primary font-mono font-medium">
-            {Math.max(DATA_MIN_YEAR, Math.min(boundaryYear, DATA_MAX_YEAR) - WINDOW_SIZE)}-
-            {Math.max(DATA_MIN_YEAR, Math.min(boundaryYear, DATA_MAX_YEAR) - WINDOW_SIZE + WINDOW_SIZE)}
-          </span>{" "}
-          vs{" "}
-          <span className="text-primary font-mono font-medium">
-            {Math.max(DATA_MIN_YEAR, Math.min(boundaryYear, DATA_MAX_YEAR) - WINDOW_SIZE + 0)}-
-            {Math.max(DATA_MIN_YEAR, Math.min(boundaryYear, DATA_MAX_YEAR))}
-          </span>
+         {(() => {
+  const normalizedBoundary = Math.max(
+    DATA_MIN_YEAR + WINDOW_SIZE,
+    Math.min(boundaryYear, DATA_MAX_YEAR)
+  );
+
+  const rightEnd = normalizedBoundary;
+  const rightStart = Math.max(DATA_MIN_YEAR, rightEnd - WINDOW_SIZE);
+
+  const leftEnd = rightStart;
+  const leftStart = Math.max(DATA_MIN_YEAR, leftEnd - WINDOW_SIZE);
+
+  return (
+    <>
+      <span className="text-primary font-mono font-medium">
+        {leftStart}-{leftEnd}
+      </span>{" "}
+      vs{" "}
+      <span className="text-primary font-mono font-medium">
+        {rightStart}-{rightEnd}
+      </span>
+    </>
+  );
+})()}
         </span>
 
         <div className="flex items-center gap-2 text-[11px] text-muted-foreground flex-wrap">
