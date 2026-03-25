@@ -73,6 +73,7 @@ export default function Dashboard() {
           scenario={currentScenario}
           selectedYear={selectedYear}
           isLoading={tempLoading || humidLoading}
+          regions={regions} 
         />
 
         <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
