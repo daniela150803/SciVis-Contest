@@ -1,0 +1,1 @@
+{"version":3,"file":"getHumidityDataParams.d.ts","sourceRoot":"","sources":["../../../src/generated/types/getHumidityDataParams.ts"],"names":[],"mappings":"AAAA;;;;;;GAMG;AACH,OAAO,KAAK,EAAE,uBAAuB,EAAE,MAAM,2BAA2B,CAAC;AAEzE,MAAM,MAAM,qBAAqB,GAAG;IAClC;;OAEG;IACH,IAAI,CAAC,EAAE,MAAM,CAAC;IACd;;OAEG;IACH,QAAQ,CAAC,EAAE,uBAAuB,CAAC;CACpC,CAAC"}

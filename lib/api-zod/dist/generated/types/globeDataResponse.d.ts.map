@@ -1,0 +1,1 @@
+{"version":3,"file":"globeDataResponse.d.ts","sourceRoot":"","sources":["../../../src/generated/types/globeDataResponse.ts"],"names":[],"mappings":"AAAA;;;;;;GAMG;AACH,OAAO,KAAK,EAAE,UAAU,EAAE,MAAM,cAAc,CAAC;AAE/C,MAAM,WAAW,iBAAiB;IAChC,IAAI,EAAE,MAAM,CAAC;IACb,QAAQ,EAAE,MAAM,CAAC;IACjB,MAAM,EAAE,UAAU,EAAE,CAAC;CACtB"}
