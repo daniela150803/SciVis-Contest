@@ -20,16 +20,16 @@ async function tryPython(path: string): Promise<unknown | null> {
 // ─── Synthetic fallback data ──────────────────────────────────────────────────
 
 const REGIONS = [
-  { id: "north_america", name: "North America", lat: 45, lon: -100, color: "#3B82F6", baseTemp: 8.5, baseHumidity: 65 },
-  { id: "south_america", name: "South America", lat: -15, lon: -60, color: "#10B981", baseTemp: 22.0, baseHumidity: 78 },
-  { id: "europe", name: "Europe", lat: 50, lon: 10, color: "#8B5CF6", baseTemp: 9.5, baseHumidity: 72 },
-  { id: "africa", name: "Africa", lat: 0, lon: 20, color: "#F59E0B", baseTemp: 25.5, baseHumidity: 55 },
-  { id: "south_asia", name: "South Asia", lat: 20, lon: 80, color: "#EF4444", baseTemp: 26.5, baseHumidity: 74 },
-  { id: "east_asia", name: "East Asia", lat: 35, lon: 115, color: "#EC4899", baseTemp: 14.0, baseHumidity: 68 },
-  { id: "southeast_asia", name: "Southeast Asia", lat: 5, lon: 115, color: "#06B6D4", baseTemp: 27.0, baseHumidity: 82 },
+  { id: "north_america", name: "América del Norte", lat: 45, lon: -100, color: "#3B82F6", baseTemp: 8.5, baseHumidity: 65 },
+  { id: "south_america", name: "América del Sur", lat: -15, lon: -60, color: "#10B981", baseTemp: 22.0, baseHumidity: 78 },
+  { id: "europe", name: "Europa", lat: 50, lon: 10, color: "#8B5CF6", baseTemp: 9.5, baseHumidity: 72 },
+  { id: "africa", name: "África", lat: 0, lon: 20, color: "#F59E0B", baseTemp: 25.5, baseHumidity: 55 },
+  { id: "south_asia", name: "Asia del Sur", lat: 20, lon: 80, color: "#EF4444", baseTemp: 26.5, baseHumidity: 74 },
+  { id: "east_asia", name: "Asia Oriental", lat: 35, lon: 115, color: "#EC4899", baseTemp: 14.0, baseHumidity: 68 },
+  { id: "southeast_asia", name: "Sudeste Asiático", lat: 5, lon: 115, color: "#06B6D4", baseTemp: 27.0, baseHumidity: 82 },
   { id: "australia", name: "Australia", lat: -25, lon: 135, color: "#F97316", baseTemp: 21.5, baseHumidity: 48 },
-  { id: "arctic", name: "Arctic", lat: 75, lon: 0, color: "#60A5FA", baseTemp: -15.0, baseHumidity: 75 },
-  { id: "middle_east", name: "Middle East", lat: 30, lon: 45, color: "#D97706", baseTemp: 24.0, baseHumidity: 35 },
+  { id: "arctic", name: "Ártico", lat: 75, lon: 0, color: "#60A5FA", baseTemp: -15.0, baseHumidity: 75 },
+  { id: "middle_east", name: "Oriente Medio", lat: 30, lon: 45, color: "#D97706", baseTemp: 24.0, baseHumidity: 35 },
 ];
 
 const SCENARIOS = [

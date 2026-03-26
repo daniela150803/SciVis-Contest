@@ -11,6 +11,7 @@ import { YearSlider } from "@/components/YearSlider";
 import { KPICards } from "@/components/KPICards";
 import { ScenarioComparison } from "@/components/ScenarioComparison";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Heatmap } from "@/components/Heatmap";
 
 export default function Dashboard() {
   const [scenario, setScenario] = useState("ssp245");
@@ -86,10 +87,13 @@ export default function Dashboard() {
           scenario={currentScenario}
           selectedYear={selectedYear}
           isLoading={tempLoading || humidLoading}
+          regions={regions}
         />
 
         <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+          {/* Columna izquierda: Globo 3D + Mapa de calor */}
           <div className="xl:col-span-3 bg-card border border-border/60 rounded-xl overflow-hidden">
+            {/* Sección del Globo */}
             <div className="px-5 py-4 border-b border-border/40 flex items-center justify-between">
               <div>
                 <h2 className="text-sm font-semibold text-foreground">Mapa Global de Temperatura en 3D</h2>
@@ -109,8 +113,32 @@ export default function Dashboard() {
             ) : (
               <Globe3D points={globePoints} year={selectedYear} scenario={scenario} />
             )}
+
+            {/* Sección del Mapa de Calor (debajo del Globo) */}
+            <div className="border-t border-border/60 mt-4 pt-4 px-5 pb-5">
+              <div className="mb-3">
+                <h2 className="text-sm font-semibold text-foreground">Mapa de Calor · Anomalía por Región y Año</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Temperatura relativa a línea base 2000 · Haz clic para navegar
+                </p>
+              </div>
+              {tempLoading ? (
+                <div className="h-64">
+                  <Skeleton className="w-full h-full" />
+                </div>
+              ) : (
+                <Heatmap
+                  data={tempRecords}
+                  regions={regions}
+                  selectedYear={selectedYear}
+                  onYearChange={setSelectedYear}
+                  scenario={scenario}
+                />
+              )}
+            </div>
           </div>
 
+          {/* Columna derecha: Radar de humedad y resumen regional */}
           <div className="xl:col-span-2 space-y-6">
             <div className="bg-card border border-border/60 rounded-xl overflow-hidden">
               <div className="px-5 py-4 border-b border-border/40">
