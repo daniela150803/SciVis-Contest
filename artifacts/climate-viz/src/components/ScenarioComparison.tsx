@@ -40,10 +40,10 @@ interface Props {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const SSP_SCENARIOS = [
-  { id: "ssp126" as keyof AllScenariosData, label: "SSP1-2.6", sublabel: "Sostenible", color: "#22c55e" },
-  { id: "ssp245" as keyof AllScenariosData, label: "SSP2-4.5", sublabel: "Intermedio", color: "#f59e0b" },
-  { id: "ssp370" as keyof AllScenariosData, label: "SSP3-7.0", sublabel: "Alto",       color: "#f97316" },
-  { id: "ssp585" as keyof AllScenariosData, label: "SSP5-8.5", sublabel: "Muy alto",   color: "#ef4444" },
+  { id: "ssp126" as keyof AllScenariosData, label: "SSP1-2.6", sublabel: "Sostenible", color: "#2eccb2" },
+  { id: "ssp245" as keyof AllScenariosData, label: "SSP2-4.5", sublabel: "Intermedio", color: "#e5f785" },
+  { id: "ssp370" as keyof AllScenariosData, label: "SSP3-7.0", sublabel: "Alto",       color: "#f96916" },
+  { id: "ssp585" as keyof AllScenariosData, label: "SSP5-8.5", sublabel: "Muy alto",   color: "#df2938" },
 ] as const;
 
 // ─── Tooltip ──────────────────────────────────────────────────────────────────
