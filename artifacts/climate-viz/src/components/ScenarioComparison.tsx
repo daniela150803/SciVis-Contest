@@ -1,6 +1,6 @@
 import {
-  LineChart,
-  Line,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -40,10 +40,10 @@ interface Props {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const SSP_SCENARIOS = [
-  { id: "ssp126" as keyof AllScenariosData, label: "SSP1-2.6", sublabel: "Sostenible", color: "#2E8CCC" },
-  { id: "ssp245" as keyof AllScenariosData, label: "SSP2-4.5", sublabel: "Intermedio", color: "#F3FCDB" },
-  { id: "ssp370" as keyof AllScenariosData, label: "SSP3-7.0", sublabel: "Alto",       color: "#FC9F3D" },
-  { id: "ssp585" as keyof AllScenariosData, label: "SSP5-8.5", sublabel: "Muy alto",   color: "#B21717" },
+  { id: "ssp126" as keyof AllScenariosData, label: "SSP1-2.6", sublabel: "Sostenible", color: "#22c55e" },
+  { id: "ssp245" as keyof AllScenariosData, label: "SSP2-4.5", sublabel: "Intermedio", color: "#f59e0b" },
+  { id: "ssp370" as keyof AllScenariosData, label: "SSP3-7.0", sublabel: "Alto",       color: "#f97316" },
+  { id: "ssp585" as keyof AllScenariosData, label: "SSP5-8.5", sublabel: "Muy alto",   color: "#ef4444" },
 ] as const;
 
 // ─── Tooltip ──────────────────────────────────────────────────────────────────
@@ -57,7 +57,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
       {sorted.map((entry: any) => (
         <div key={entry.dataKey} className="flex items-center justify-between gap-4 mb-0.5">
           <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+            <div className="w-2 h-2 rounded-sm" style={{ backgroundColor: entry.color }} />
             <span className="text-muted-foreground">{entry.name}</span>
           </div>
           <span className="font-mono font-medium text-foreground">
@@ -89,14 +89,12 @@ function aggregateByYear(
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function ScenarioComparison({ selectedRegion, regions, allScenariosData, isLoading }: Props) {
-  // Local region filter — starts synced with Dashboard's selectedRegion, but independent
   const [localRegionName, setLocalRegionName] = useState<string | undefined>(
     selectedRegion ? regions.find((r) => r.id === selectedRegion)?.name : undefined,
   );
 
   const regionName = localRegionName;
 
-  // All unique region names across all scenarios (for the region slider)
   const allRegionNames = useMemo(() => {
     const names = new Set<string>();
     Object.values(allScenariosData).forEach((records) =>
@@ -105,7 +103,6 @@ export function ScenarioComparison({ selectedRegion, regions, allScenariosData, 
     return Array.from(names).sort();
   }, [allScenariosData]);
 
-  // Build chart data: one row per year, one key per SSP
   const chartData = useMemo(() => {
     const maps = SSP_SCENARIOS.map((s) => ({
       id: s.id,
@@ -168,8 +165,7 @@ export function ScenarioComparison({ selectedRegion, regions, allScenariosData, 
       <div className="px-5 py-3 border-b border-border/30 bg-muted/20">
         <div className="flex items-center gap-4">
           <span className="text-xs text-muted-foreground w-14 flex-shrink-0">Región</span>
-          <div className="flex-1 flex items-center gap-1 overflow-x-auto no-scrollbar flex-wrap">
-            {/* "Global" button */}
+          <div className="flex-1 flex items-center gap-1 overflow-x-auto no-scrollbar">
             <button
               onClick={() => setLocalRegionName(undefined)}
               className={`flex-shrink-0 px-2.5 py-1 text-xs rounded-md transition-all font-mono ${
@@ -180,37 +176,37 @@ export function ScenarioComparison({ selectedRegion, regions, allScenariosData, 
             >
               Global
             </button>
-            {allRegionNames.map((name) => {
-              const isActive = name === regionName;
-              return (
-                <button
-                  key={name}
-                  onClick={() => setLocalRegionName(name)}
-                  className={`flex-shrink-0 px-2.5 py-1 text-xs rounded-md transition-all font-mono ${
-                    isActive
-                      ? "bg-primary text-primary-foreground font-semibold"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                  }`}
-                >
-                  {name}
-                </button>
-              );
-            })}
+            {allRegionNames.map((name) => (
+              <button
+                key={name}
+                onClick={() => setLocalRegionName(name)}
+                className={`flex-shrink-0 px-2.5 py-1 text-xs rounded-md transition-all font-mono ${
+                  name === regionName
+                    ? "bg-primary text-primary-foreground font-semibold"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                }`}
+              >
+                {name}
+              </button>
+            ))}
           </div>
         </div>
       </div>
 
       {/* Chart */}
       <div className="px-2 pb-4 pt-2">
-        <ResponsiveContainer width="100%" height={280}>
-          <LineChart
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart
             data={chartData}
             margin={{ top: 8, right: 24, bottom: 0, left: 0 }}
+            barCategoryGap="15%"
+            barGap={1}
           >
             <CartesianGrid
               strokeDasharray="3 3"
               stroke="hsl(215 28% 17%)"
               strokeOpacity={0.5}
+              vertical={false}
             />
             <XAxis
               dataKey="year"
@@ -223,12 +219,14 @@ export function ScenarioComparison({ selectedRegion, regions, allScenariosData, 
               tickLine={false}
               axisLine={false}
               tickFormatter={(v) => `${v > 0 ? "+" : ""}${v.toFixed(1)}°C`}
+              domain={[0, 6]}
+              ticks={[0, 1, 2, 3, 4, 5, 6]}
               width={60}
             />
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
             <Legend
               wrapperStyle={{ fontSize: 11, paddingTop: 12 }}
-              iconType="circle"
+              iconType="square"
               iconSize={8}
             />
             <ReferenceLine
@@ -238,21 +236,19 @@ export function ScenarioComparison({ selectedRegion, regions, allScenariosData, 
               strokeWidth={1}
             />
             {SSP_SCENARIOS.map((s) => (
-              <Line
+              <Bar
                 key={s.id}
-                type="monotone"
                 dataKey={s.label}
-                stroke={s.color}
-                strokeWidth={2}
-                dot={false}
-                activeDot={{ r: 5, strokeWidth: 0 }}
+                fill={s.color}
+                radius={[2, 2, 0, 0]}
+                maxBarSize={6}
                 name={`${s.label} · ${s.sublabel}`}
               />
             ))}
-          </LineChart>
+          </BarChart>
         </ResponsiveContainer>
         <p className="text-center text-[10px] text-muted-foreground/60 mt-2">
-          Anomalía vs línea base 1981–2010 · NEX GDDP CMIP6
+          Haz clic en la region que desees filtrar y pasa por encima de las barras para ver datos de temperatura
         </p>
       </div>
     </div>
