@@ -56,6 +56,20 @@ export function HumidityRadar({ data, selectedYear, regions }: Props) {
     );
   }, [data, selectedYear]);
 
+const chartData = useMemo(() => {
+  const yearData = data.filter((d) => d.year === nearestYear);
+  return yearData.map((d) => {
+    const regionName =
+      regions.find((r) => r.id === (d as any).regionId)?.name ??
+      regions.find((r) => r.name === d.region || r.name.toLowerCase() === d.region.toLowerCase())?.name ??
+      d.region;
+    return {
+      region: regionName.replace(/ /g, "\n"),
+      humidity: parseFloat(d.humidity.toFixed(1)),
+      specificHumidity: parseFloat(d.specificHumidity.toFixed(2)),
+    };
+  });
+}, [data, nearestYear, regions]);
   const chartData = useMemo(() => {
     const yearData = data.filter((d) => d.year === nearestYear);
 

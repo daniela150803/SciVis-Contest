@@ -12,10 +12,10 @@ interface Props {
 }
 
 const SCENARIO_COLORS: Record<string, string> = {
-  ssp126: "#22c55e",
-  ssp245: "#f59e0b",
-  ssp370: "#f97316",
-  ssp585: "#ef4444",
+  ssp126: "#2eccb2",
+  ssp245: "#e5f785",
+  ssp370: "#f96916",
+  ssp585: "#df2938",
 };
 
 export function ScenarioSelector({ scenarios, value, onChange }: Props) {

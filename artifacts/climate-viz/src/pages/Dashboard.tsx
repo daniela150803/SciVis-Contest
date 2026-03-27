@@ -21,7 +21,9 @@ import { RegionComparison } from "@/components/RegionComparison";
 import { ScenarioSelector } from "@/components/ScenarioSelector";
 import { YearSlider } from "@/components/YearSlider";
 import { KPICards } from "@/components/KPICards";
+import { ScenarioComparison } from "@/components/ScenarioComparison";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Heatmap } from "@/components/Heatmap";
 
 type HumidityRecord = {
   year: number;
@@ -40,6 +42,16 @@ export default function Dashboard() {
 
   const { data: regionsData } = useGetRegions();
   const { data: scenariosData } = useGetScenarios();
+  const { data: temperatureData, isLoading: tempLoading } = useGetTemperatureData({ scenario: scenario as GetTemperatureDataScenario });
+  const { data: humidityData, isLoading: humidLoading } = useGetHumidityData({ scenario: scenario as GetHumidityDataScenario });
+  const { data: ssp126Data, isLoading: ssp126Loading } = useGetTemperatureData({ scenario: "ssp126" as GetTemperatureDataScenario });
+  const { data: ssp245Data, isLoading: ssp245Loading } = useGetTemperatureData({ scenario: "ssp245" as GetTemperatureDataScenario });
+  const { data: ssp370Data, isLoading: ssp370Loading } = useGetTemperatureData({ scenario: "ssp370" as GetTemperatureDataScenario });
+  const { data: ssp585Data, isLoading: ssp585Loading } = useGetTemperatureData({ scenario: "ssp585" as GetTemperatureDataScenario });
+  const { data: globeData, isLoading: globeLoading } = useGetGlobeData({
+    year: selectedYear,
+    scenario: scenario as GetGlobeDataScenario,
+  });
 
   const { data: temperatureData, isLoading: tempLoading } =
     useGetTemperatureData({
@@ -64,6 +76,14 @@ export default function Dashboard() {
   const globePoints = globeData?.points ?? [];
 
   const currentScenario = scenarios.find((s) => s.id === scenario);
+
+  const allScenariosData = {
+    ssp126: ssp126Data?.data ?? [],
+    ssp245: ssp245Data?.data ?? [],
+    ssp370: ssp370Data?.data ?? [],
+    ssp585: ssp585Data?.data ?? [],
+  };
+  const allScenariosLoading = ssp126Loading || ssp245Loading || ssp370Loading || ssp585Loading;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -96,10 +116,24 @@ export default function Dashboard() {
           scenario={currentScenario}
           selectedYear={selectedYear}
           isLoading={tempLoading || humidLoading}
+          regions={regions}
         />
 
         {/* GRID */}
         <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+          {/* Columna izquierda: Globo 3D + Mapa de calor */}
+          <div className="xl:col-span-3 bg-card border border-border/60 rounded-xl overflow-hidden">
+            {/* Sección del Globo */}
+            <div className="px-5 py-4 border-b border-border/40 flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-semibold text-foreground">Mapa Global de Temperatura en 3D</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Anomalía de temperatura (°C vs línea base 1981–2010) · {selectedYear}
+                </p>
+              </div>
+              <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-md">
+                {currentScenario?.warming ?? ""}
+              </span>
           {/* GLOBO */}
           <div className="xl:col-span-3 bg-card border rounded-xl">
             <div className="p-4 border-b">
@@ -124,8 +158,32 @@ export default function Dashboard() {
                 scenario={scenario}
               />
             )}
+
+            {/* Sección del Mapa de Calor (debajo del Globo) */}
+            <div className="border-t border-border/60 mt-4 pt-4 px-5 pb-5">
+              <div className="mb-3">
+                <h2 className="text-sm font-semibold text-foreground">Mapa de Calor · Anomalía por Región y Año</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Temperatura relativa a línea base 2000 · Haz clic para navegar
+                </p>
+              </div>
+              {tempLoading ? (
+                <div className="h-64">
+                  <Skeleton className="w-full h-full" />
+                </div>
+              ) : (
+                <Heatmap
+                  data={tempRecords}
+                  regions={regions}
+                  selectedYear={selectedYear}
+                  onYearChange={setSelectedYear}
+                  scenario={scenario}
+                />
+              )}
+            </div>
           </div>
 
+          {/* Columna derecha: Radar de humedad y resumen regional */}
           {/* HUMEDAD */}
           <div className="xl:col-span-2 space-y-6">
             <div className="bg-card border rounded-xl">
@@ -219,6 +277,12 @@ export default function Dashboard() {
             />
           )}
         </div>
+        <ScenarioComparison
+          selectedRegion={selectedRegion}
+          regions={regions}
+          allScenariosData={allScenariosData}
+          isLoading={allScenariosLoading}
+        />
       </main>
     </div>
   );

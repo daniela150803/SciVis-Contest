@@ -4,6 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 interface TemperatureRecord {
   year: number;
   region: string;
+  regionId?: string;
   temperature: number;
   temperatureAnomaly: number;
   scenario: string;
@@ -24,19 +25,24 @@ interface Scenario {
   warming: string;
 }
 
+interface Region {
+  id: string;
+  name: string;
+}
+
 interface Props {
   tempRecords: TemperatureRecord[];
   humidityRecords: HumidityRecord[];
   scenario: Scenario | undefined;
   selectedYear: number;
   isLoading: boolean;
+  regions: Region[];
 }
 
-export function KPICards({ tempRecords, humidityRecords, scenario, selectedYear, isLoading }: Props) {
+export function KPICards({ tempRecords, humidityRecords, scenario, selectedYear, isLoading, regions }: Props) {
   const stats = useMemo(() => {
     if (!tempRecords.length) return null;
 
-    const baseline2015 = tempRecords.filter((d) => d.year === 2015);
     const current = tempRecords.filter((d) => d.year === selectedYear);
 
     const avgAnomaly2100 = tempRecords
@@ -49,11 +55,16 @@ export function KPICards({ tempRecords, humidityRecords, scenario, selectedYear,
       .reduce((max, d) => (d.temperatureAnomaly > max.temperatureAnomaly ? d : max), {
         temperatureAnomaly: -Infinity,
         region: "",
+        regionId: "",
       } as TemperatureRecord);
 
-    const avgHumidity = humidityRecords
-      .filter((d) => d.year === selectedYear)
-      .reduce((sum, d) => sum + d.humidity, 0) /
+    const maxRegionName =
+      regions.find((r) => r.id === maxAnomalyRec.regionId)?.name ?? maxAnomalyRec.region;
+
+    const avgHumidity =
+      humidityRecords
+        .filter((d) => d.year === selectedYear)
+        .reduce((sum, d) => sum + d.humidity, 0) /
       Math.max(humidityRecords.filter((d) => d.year === selectedYear).length, 1);
 
     const globalAnomaly =
@@ -62,13 +73,13 @@ export function KPICards({ tempRecords, humidityRecords, scenario, selectedYear,
     return {
       globalAnomaly,
       avgAnomaly2100,
-      maxRegion: maxAnomalyRec.region,
+      maxRegion: maxRegionName,
       maxAnomaly: maxAnomalyRec.temperatureAnomaly,
       avgHumidity,
     };
-  }, [tempRecords, humidityRecords, selectedYear]);
+  }, [tempRecords, humidityRecords, selectedYear, regions]);
 
-    const cards = [
+  const cards = [
     {
       label: "Anomalía Global de Temp.",
       sublabel: `Año ${selectedYear}`,
