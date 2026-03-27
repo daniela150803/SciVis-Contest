@@ -35,11 +35,69 @@ const WINDOW_SIZE = 10;
 const DATA_MIN_YEAR = 2015;
 const DATA_MAX_YEAR = 2100;
 
-function temperatureToColor(temp: number, min: number, max: number) {
-  if (max === min) return "hsl(220 90% 55%)";
-  const t = (temp - min) / (max - min);
-  const hue = 220 - Math.max(0, Math.min(1, t)) * 220;
-  return `hsl(${hue} 90% 55%)`;
+const GLOBE_COLOR_STOPS = [
+  "#153DA0",
+  "#2E8CCC",
+  "#8CCCE6",
+  "#F3FCDB",
+  "#FCCD4D",
+  "#FC9F3D",
+  "#F24D24",
+  "#B21717",
+];
+
+function clamp01(value: number) {
+  return Math.max(0, Math.min(1, value));
+}
+
+function hexToRgb(hex: string) {
+  const clean = hex.replace("#", "");
+  const full =
+    clean.length === 3
+      ? clean
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : clean;
+
+  const num = parseInt(full, 16);
+  return {
+    r: (num >> 16) & 255,
+    g: (num >> 8) & 255,
+    b: num & 255,
+  };
+}
+
+function rgbToHex(r: number, g: number, b: number) {
+  return (
+    "#" +
+    [r, g, b]
+      .map((v) => Math.round(v).toString(16).padStart(2, "0"))
+      .join("")
+  );
+}
+
+function interpolateColor(a: string, b: string, t: number) {
+  const c1 = hexToRgb(a);
+  const c2 = hexToRgb(b);
+
+  return rgbToHex(
+    c1.r + (c2.r - c1.r) * t,
+    c1.g + (c2.g - c1.g) * t,
+    c1.b + (c2.b - c1.b) * t
+  );
+}
+
+function temperatureToGlobeColor(temp: number, min: number, max: number) {
+  if (max === min) return GLOBE_COLOR_STOPS[1];
+
+  const stops = GLOBE_COLOR_STOPS;
+  const t = clamp01((temp - min) / (max - min));
+  const scaled = t * (stops.length - 1);
+  const i = Math.min(stops.length - 2, Math.floor(scaled));
+  const frac = scaled - i;
+
+  return interpolateColor(stops[i], stops[i + 1], frac);
 }
 
 function avgByRegion<T extends { region: string; year: number }>(
@@ -68,7 +126,6 @@ function avgByRegion<T extends { region: string; year: number }>(
   return res;
 }
 
-/* 🔥 TOOLTIP CORRECTO (COMPARA AMBOS) */
 const CustomTooltip = ({ active, payload }: any) => {
   if (!active || !payload?.length) return null;
 
@@ -117,8 +174,18 @@ export function HumidityBarChart({
     const hL = avgByRegion(humidityData, leftStart, leftEnd, (d) => d.humidity);
     const hR = avgByRegion(humidityData, rightStart, rightEnd, (d) => d.humidity);
 
-    const tL = avgByRegion(temperatureData, leftStart, leftEnd, (d) => d.temperature);
-    const tR = avgByRegion(temperatureData, rightStart, rightEnd, (d) => d.temperature);
+    const tL = avgByRegion(
+      temperatureData,
+      leftStart,
+      leftEnd,
+      (d) => d.temperature
+    );
+    const tR = avgByRegion(
+      temperatureData,
+      rightStart,
+      rightEnd,
+      (d) => d.temperature
+    );
 
     return Array.from(new Set(humidityData.map((d) => d.region))).map((r) => ({
       region: r,
@@ -165,22 +232,18 @@ export function HumidityBarChart({
           <YAxis
             domain={[0, maxHumidity]}
             tickFormatter={(value: number) =>
-              value >= 10
-                ? Math.round(value).toString()
-                : value.toFixed(1)
+              value >= 10 ? Math.round(value).toString() : value.toFixed(1)
             }
           />
 
-          {/* 🔥 AQUÍ SE USA EL TOOLTIP CORRECTO */}
           <Tooltip content={<CustomTooltip />} />
-
           <Legend />
 
           <Bar dataKey="humidityLeft" name="Rango anterior">
             {chartData.map((d) => (
               <Cell
                 key={d.region + "l"}
-                fill={temperatureToColor(d.tempLeft, minTemp, maxTemp)}
+                fill={temperatureToGlobeColor(d.tempLeft, minTemp, maxTemp)}
               />
             ))}
           </Bar>
@@ -189,7 +252,7 @@ export function HumidityBarChart({
             {chartData.map((d) => (
               <Cell
                 key={d.region + "r"}
-                fill={temperatureToColor(d.tempRight, minTemp, maxTemp)}
+                fill={temperatureToGlobeColor(d.tempRight, minTemp, maxTemp)}
               />
             ))}
           </Bar>

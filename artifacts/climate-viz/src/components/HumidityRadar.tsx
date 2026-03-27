@@ -33,13 +33,23 @@ interface Props {
 const CustomTooltip = ({ active, payload }: any) => {
   if (!active || !payload?.length) return null;
 
+  const item = payload[0]?.payload;
+
   return (
     <div className="bg-card/95 backdrop-blur border border-border/60 rounded-lg px-3 py-2 text-xs shadow-md">
-      <p className="font-semibold mb-1">{payload[0]?.payload?.region}</p>
+      <p className="font-semibold mb-1">{item?.region}</p>
+
       <p className="text-muted-foreground">
         Humedad:{" "}
         <span className="text-foreground font-mono">
-          {Number(payload[0]?.value ?? 0).toFixed(2)} g/kg
+          {Number(item?.humidity ?? 0).toFixed(2)} g/kg
+        </span>
+      </p>
+
+      <p className="text-muted-foreground">
+        Humedad específica:{" "}
+        <span className="text-foreground font-mono">
+          {Number(item?.specificHumidity ?? 0).toFixed(2)}
         </span>
       </p>
     </div>
@@ -56,29 +66,29 @@ export function HumidityRadar({ data, selectedYear, regions }: Props) {
     );
   }, [data, selectedYear]);
 
-const chartData = useMemo(() => {
-  const yearData = data.filter((d) => d.year === nearestYear);
-  return yearData.map((d) => {
-    const regionName =
-      regions.find((r) => r.id === (d as any).regionId)?.name ??
-      regions.find((r) => r.name === d.region || r.name.toLowerCase() === d.region.toLowerCase())?.name ??
-      d.region;
-    return {
-      region: regionName.replace(/ /g, "\n"),
-      humidity: parseFloat(d.humidity.toFixed(1)),
-      specificHumidity: parseFloat(d.specificHumidity.toFixed(2)),
-    };
-  });
-}, [data, nearestYear, regions]);
   const chartData = useMemo(() => {
     const yearData = data.filter((d) => d.year === nearestYear);
 
-    return yearData.map((d) => ({
-      region: d.region,
-      humidity: Number(d.humidity.toFixed(2)),
-      specificHumidity: Number(d.specificHumidity.toFixed(2)),
-      color: regions.find((r) => r.id === d.regionId)?.color ?? "hsl(211 100% 55%)",
-    }));
+    return yearData.map((d) => {
+      const regionName =
+        regions.find((r) => r.id === d.regionId)?.name ??
+        regions.find(
+          (r) =>
+            r.name === d.region ||
+            r.name.toLowerCase() === d.region.toLowerCase()
+        )?.name ??
+        d.region;
+
+      const regionColor =
+        regions.find((r) => r.id === d.regionId)?.color ?? "hsl(211 100% 55%)";
+
+      return {
+        region: regionName.replace(/ /g, "\n"),
+        humidity: Number(d.humidity.toFixed(2)),
+        specificHumidity: Number(d.specificHumidity.toFixed(2)),
+        color: regionColor,
+      };
+    });
   }, [data, nearestYear, regions]);
 
   const maxHumidity = Math.max(...chartData.map((d) => d.humidity), 1);
@@ -87,7 +97,10 @@ const chartData = useMemo(() => {
     <div className="p-4">
       <div className="text-center mb-1">
         <span className="text-xs text-muted-foreground">
-          Año: <span className="text-primary font-mono font-medium">{nearestYear}</span>
+          Año:{" "}
+          <span className="text-primary font-mono font-medium">
+            {nearestYear}
+          </span>
         </span>
       </div>
 
@@ -105,7 +118,7 @@ const chartData = useMemo(() => {
             tickCount={4}
           />
           <Radar
-            name="Humedad específica"
+            name="Humedad"
             dataKey="humidity"
             stroke="hsl(211 100% 55%)"
             fill="hsl(211 100% 55%)"
