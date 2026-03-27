@@ -32,11 +32,25 @@ interface Props {
 
 const CustomTooltip = ({ active, payload }: any) => {
   if (!active || !payload?.length) return null;
+
+  const item = payload[0]?.payload;
+
   return (
-    <div className="bg-card/95 backdrop-blur border border-border/60 rounded-lg px-3 py-2 text-xs">
-      <p className="font-semibold mb-1">{payload[0]?.payload?.region}</p>
+    <div className="bg-card/95 backdrop-blur border border-border/60 rounded-lg px-3 py-2 text-xs shadow-md">
+      <p className="font-semibold mb-1">{item?.region}</p>
+
       <p className="text-muted-foreground">
-        HR: <span className="text-foreground font-mono">{payload[0]?.value?.toFixed(1)}%</span>
+        Humedad:{" "}
+        <span className="text-foreground font-mono">
+          {Number(item?.humidity ?? 0).toFixed(2)} g/kg
+        </span>
+      </p>
+
+      <p className="text-muted-foreground">
+        Humedad específica:{" "}
+        <span className="text-foreground font-mono">
+          {Number(item?.specificHumidity ?? 0).toFixed(2)}
+        </span>
       </p>
     </div>
   );
@@ -44,35 +58,52 @@ const CustomTooltip = ({ active, payload }: any) => {
 
 export function HumidityRadar({ data, selectedYear, regions }: Props) {
   const nearestYear = useMemo(() => {
-    const years = [...new Set(data.map((d) => d.year))].sort();
+    const years = [...new Set(data.map((d) => d.year))].sort((a, b) => a - b);
     if (!years.length) return selectedYear;
+
     return years.reduce((prev, curr) =>
       Math.abs(curr - selectedYear) < Math.abs(prev - selectedYear) ? curr : prev
     );
   }, [data, selectedYear]);
 
-const chartData = useMemo(() => {
-  const yearData = data.filter((d) => d.year === nearestYear);
-  return yearData.map((d) => {
-    const regionName =
-      regions.find((r) => r.id === (d as any).regionId)?.name ??
-      regions.find((r) => r.name === d.region || r.name.toLowerCase() === d.region.toLowerCase())?.name ??
-      d.region;
-    return {
-      region: regionName.replace(/ /g, "\n"),
-      humidity: parseFloat(d.humidity.toFixed(1)),
-      specificHumidity: parseFloat(d.specificHumidity.toFixed(2)),
-    };
-  });
-}, [data, nearestYear, regions]);
+  const chartData = useMemo(() => {
+    const yearData = data.filter((d) => d.year === nearestYear);
+
+    return yearData.map((d) => {
+      const regionName =
+        regions.find((r) => r.id === d.regionId)?.name ??
+        regions.find(
+          (r) =>
+            r.name === d.region ||
+            r.name.toLowerCase() === d.region.toLowerCase()
+        )?.name ??
+        d.region;
+
+      const regionColor =
+        regions.find((r) => r.id === d.regionId)?.color ?? "hsl(211 100% 55%)";
+
+      return {
+        region: regionName.replace(/ /g, "\n"),
+        humidity: Number(d.humidity.toFixed(2)),
+        specificHumidity: Number(d.specificHumidity.toFixed(2)),
+        color: regionColor,
+      };
+    });
+  }, [data, nearestYear, regions]);
+
+  const maxHumidity = Math.max(...chartData.map((d) => d.humidity), 1);
 
   return (
     <div className="p-4">
       <div className="text-center mb-1">
         <span className="text-xs text-muted-foreground">
-          Año: <span className="text-primary font-mono font-medium">{nearestYear}</span>
+          Año:{" "}
+          <span className="text-primary font-mono font-medium">
+            {nearestYear}
+          </span>
         </span>
       </div>
+
       <ResponsiveContainer width="100%" height={260}>
         <RadarChart cx="50%" cy="50%" outerRadius="75%" data={chartData}>
           <PolarGrid stroke="hsl(215 28% 17%)" />
@@ -82,12 +113,12 @@ const chartData = useMemo(() => {
           />
           <PolarRadiusAxis
             angle={90}
-            domain={[0, 100]}
+            domain={[0, maxHumidity]}
             tick={{ fill: "hsl(215 16% 40%)", fontSize: 9 }}
             tickCount={4}
           />
           <Radar
-            name="Humedad Relativa %"
+            name="Humedad"
             dataKey="humidity"
             stroke="hsl(211 100% 55%)"
             fill="hsl(211 100% 55%)"
