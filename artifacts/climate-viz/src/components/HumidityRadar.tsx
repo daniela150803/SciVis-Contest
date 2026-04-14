@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import {
   RadarChart,
   PolarGrid,
@@ -6,8 +7,8 @@ import {
   Radar,
   ResponsiveContainer,
   Tooltip,
+  Legend,
 } from "recharts";
-import { useMemo } from "react";
 
 export interface HumidityRecord {
   year: number;
@@ -31,6 +32,9 @@ interface Props {
   baseYear?: number; // año de referencia, por defecto el primer año del dataset
 }
 
+const DEFAULT_RADAR_COLOR = "hsl(211 100% 55%)";
+const SECOND_RADAR_COLOR = "hsl(180 100% 50%)";
+
 const CustomTooltip = ({ active, payload }: any) => {
   if (!active || !payload?.length) return null;
   const item = payload[0]?.payload;
@@ -40,14 +44,18 @@ const CustomTooltip = ({ active, payload }: any) => {
 
   return (
     <div className="bg-card/95 backdrop-blur border border-border/60 rounded-lg px-3 py-2 text-xs shadow-md">
-      <p className="font-semibold mb-1">{item?.regionLabel}</p>
-      <div className="flex items-center gap-1 mb-0.5">
+      <p className="flex items-center gap-2 font-semibold mb-1">
         <span
-          className={`text-base font-mono font-bold ${
-            pct > 0 ? "text-blue-400" : pct < 0 ? "text-orange-400" : "text-muted-foreground"
-          }`}
-        >
-          {pct > 0 ? "+" : ""}{Number(pct).toFixed(1)}%
+          className="w-2.5 h-2.5 rounded-full"
+          style={{ background: item?.color ?? DEFAULT_RADAR_COLOR }}
+        />
+        {item?.region}
+      </p>
+
+      <p className="text-muted-foreground">
+        Humedad:{" "}
+        <span className="text-foreground font-mono">
+          {Number(item?.humidity ?? 0).toFixed(2)} g/kg
         </span>
         <span className="text-muted-foreground">vs año base</span>
       </div>
@@ -63,13 +71,22 @@ const CustomTooltip = ({ active, payload }: any) => {
   );
 };
 
-export function HumidityRadar({ data, selectedYear, regions, baseYear }: Props) {
-  // Año más cercano al seleccionado
+export function HumidityRadar({ data, selectedYear, regions }: Props) {
+  const regionMap = useMemo(() => {
+    const map = new Map<string, Region>();
+    regions.forEach((region) => {
+      map.set(region.id, region);
+    });
+    return map;
+  }, [regions]);
+
   const nearestYear = useMemo(() => {
     const years = [...new Set(data.map((d) => d.year))].sort((a, b) => a - b);
     if (!years.length) return selectedYear;
     return years.reduce((prev, curr) =>
-      Math.abs(curr - selectedYear) < Math.abs(prev - selectedYear) ? curr : prev
+      Math.abs(curr - selectedYear) < Math.abs(prev - selectedYear)
+        ? curr
+        : prev
     );
   }, [data, selectedYear]);
 
@@ -116,31 +133,55 @@ export function HumidityRadar({ data, selectedYear, regions, baseYear }: Props) 
   const chartData = useMemo(() => {
     const yearData = data.filter((d) => d.year === nearestYear);
 
-    return yearData.map((d) => {
-      const regionName =
-        regions.find((r) => r.id === d.regionId)?.name ??
-        regions.find((r) => r.name.toLowerCase() === d.region.toLowerCase())?.name ??
-        d.region;
+    return yearData
+      .map((d) => {
+        const regionMeta = regionMap.get(d.regionId);
 
-      const base = baseValues.get(d.regionId) ?? d.humidity;
-      const pct = base !== 0 ? ((d.humidity - base) / base) * 100 : 0;
+        const regionName =
+          regionMeta?.name ??
+          regions.find(
+            (r) =>
+              r.name === d.region ||
+              r.name.toLowerCase() === d.region.toLowerCase()
+          )?.name ??
+          d.region;
 
-      return {
-        region: regionName.replace(/ /g, "\n"),
-        regionLabel: regionName,
-        // Valor que usa Recharts: % de cambio respecto al año base
-        humidity: Number(pct.toFixed(3)),
-        rawHumidity: d.humidity,
-        baseHumidity: base,
-        pctChange: pct,
-      };
-    });
-  }, [data, nearestYear, regions, baseValues]);
+        const regionColor = regionMeta?.color ?? DEFAULT_RADAR_COLOR;
 
-  // Dominio simétrico fijo para todos los años
-  const axisDomain: [number, number] = [-maxAbsPct, maxAbsPct];
+        return {
+          region: regionName.replace(/ /g, "\n"),
+          humidity: Number(d.humidity.toFixed(2)),
+          specificHumidity: Number(d.specificHumidity.toFixed(2)),
+          color: regionColor,
+        };
+      })
+      .sort((a, b) => b.humidity - a.humidity);
+  }, [data, nearestYear, regionMap, regions]);
 
-  const isBaseYear = nearestYear === resolvedBaseYear;
+  const maxHumidity = chartData.length
+    ? Math.max(...chartData.map((d) => d.humidity), 1)
+    : 1;
+
+  const radarColor = chartData[0]?.color ?? DEFAULT_RADAR_COLOR;
+
+  if (!chartData.length) {
+    return (
+      <div className="p-4">
+        <div className="text-center mb-1">
+          <span className="text-xs text-muted-foreground">
+            Año:{" "}
+            <span className="text-primary font-mono font-medium">
+              {nearestYear}
+            </span>
+          </span>
+        </div>
+
+        <div className="h-[260px] flex items-center justify-center text-xs text-muted-foreground">
+          No hay datos suficientes para mostrar el radar.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4">
@@ -159,8 +200,13 @@ export function HumidityRadar({ data, selectedYear, regions, baseYear }: Props) 
         )}
       </div>
 
-      <ResponsiveContainer width="100%" height={260}>
-        <RadarChart cx="50%" cy="50%" outerRadius="75%" data={chartData}>
+      <ResponsiveContainer width="100%" height={280}>
+        <RadarChart
+          cx="50%"
+          cy="50%"
+          outerRadius="72%"
+          data={chartData}
+        >
           <PolarGrid stroke="hsl(215 28% 17%)" />
           <PolarAngleAxis
             dataKey="region"
@@ -173,15 +219,31 @@ export function HumidityRadar({ data, selectedYear, regions, baseYear }: Props) 
             tickCount={5}
             tickFormatter={(v) => `${v > 0 ? "+" : ""}${Number(v).toFixed(1)}%`}
           />
+
           <Radar
             name="Humedad"
             dataKey="humidity"
-            stroke="hsl(211 100% 55%)"
-            fill="hsl(211 100% 55%)"
+            stroke={radarColor}
+            fill={radarColor}
             fillOpacity={0.18}
             strokeWidth={1.5}
+            isAnimationActive={true}
           />
+
+          <Radar
+            name="Humedad específica"
+            dataKey="specificHumidity"
+            stroke={SECOND_RADAR_COLOR}
+            fill="none"
+            strokeWidth={1.5}
+            isAnimationActive={true}
+          />
+
           <Tooltip content={<CustomTooltip />} />
+          <Legend
+            wrapperStyle={{ fontSize: "12px", paddingTop: "8px" }}
+            iconType="plainline"
+          />
         </RadarChart>
       </ResponsiveContainer>
 
